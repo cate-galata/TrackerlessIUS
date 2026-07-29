@@ -106,14 +106,14 @@ colors_int = [
 colors_int = colors_int[::-1]  # better for visualization
 
 save_gif = True  # if you want to generate a GIF afterwards
-output_folder = './miccai2024_data/test_set/visualizations'
+output_folder = './experiments/test_set/visualizations'
 
-path_predictions = './miccai2024_data/test_set'
+path_predictions = './experiments/test_set'
 modality = {"Case027": "t2"}
 methods_eval = ["brats_unet"]
 protocols_eval = ["remind"]
-path_us = './miccai2024_data/test_set/remind/imgs/reslice{}_crop.nii.gz'
-path_gt = './miccai2024_data/test_set/{}/gt/reslice{}_crop.nii.gz'
+path_us = './experiments/test_set/remind/imgs/reslice{}_crop.nii.gz'
+path_gt = './experiments/test_set/{}/gt/reslice{}_crop.nii.gz'
 
 if save_gif:
     import glob

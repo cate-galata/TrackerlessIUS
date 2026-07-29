@@ -37,7 +37,7 @@ args = parser.parse_args()
 # Hyperparameters
 # --------------------
 cases = [args.case]
-path_predictions = 'miccai2024_data/test_set/'
+path_predictions = './experiments/test_set/'
 
 cases_n1 = ['Case011', 'Case025','Case045','Case052', 'Case056', 'Case070', 'Case085', 'Case103', 'Case112','Case114']
 cases_n2 = ['Case027', 'Case045', 'Case074', 'Case085', 'Case099', 'Case103', 'Case112']

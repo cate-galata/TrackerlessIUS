@@ -32,11 +32,11 @@ ALL_CASES = ["Case011", "Case025", "Case027", "Case045", "Case052", "Case056", "
 
 parser = argparse.ArgumentParser(
                     prog='Generatedata',
-                    description='This script create sweeps of MR')
+                    description='This script creates ultrasound sweeps on MRI data.')
 
 parser.add_argument('--K', type=int, default=1, help='Number of K sweeps')
 parser.add_argument('--annotator', type=str, default="remind", help='Annotator')
-parser.add_argument('--case', type=str, default="Case112", help='Annotator')
+parser.add_argument('--case', type=str, default="Case112", help='Case')
 parser.add_argument('--seed', type=int, default=0, help='Seed')
 
 
@@ -54,28 +54,24 @@ case = args.case
 assert case in ALL_CASES, f"Error {case} in not in {ALL_CASES}"
 seed = args.seed
 
-path_output = "./miccai2024_data/synthetic/{}-{}-{}/{}/{}/{}"
+path_output = "./experiments/synthetic/{}-{}-{}/{}/{}/{}"
 
 # Folders from data processing
-output_path_reg_mr = "../data/registration/rigid"
-output_path_reg_us = "../data/registration/affine/"
-path_imgs = pd.read_csv("../data/refs_files.csv", index_col=0).T
-target_tumor = pd.read_csv("../data/choice_target.csv", index_col=0).T  # (unused, kept)
+output_path_reg_mr = "./data/registration/rigid"
+output_path_reg_us = "./data/registration/affine/"
+path_imgs = pd.read_csv("./data/refs_files.csv", index_col=0).T
 
-path_us_space = "../data/coregistered/us-space/"
-path_us_all = os.path.join(path_us_space, "{0}/{0}-us.nii.gz")  # MODIFIED
-path_mr_space = "../data/coregistered/mri-space/"  # (unused, kept)
-path_folder = "../data/nrrd"
+path_us_space = "./data/coregistered/us-space/"
+path_us_all = os.path.join(path_us_space, "{0}/{0}-us.nii.gz") 
+path_folder = "./data/nrrd"
 
 # Folders from MICCAI
-path_strip = "./miccai2024_data/skullstripping_hdbet/"
-path_seg = f"./miccai2024_data/training_mrlabels/{annotator}"
-us_mask_probe = "./miccai2024_data/crop_mask/{}-mask.nii.gz"
+path_strip = "./experiments/skullstripping_hdbet/"
+path_seg = f"./experiments/training_mrlabels/{annotator}"
+us_mask_probe = "./experiments/crop_mask/{}-mask.nii.gz"
 
 
 set_determinism(seed=seed)
-# cases = ["Case027", "Case045", "Case074", "Case085", "Case099", "Case103", "Case112"]
-
 
 
 # --------------------
@@ -103,7 +99,7 @@ else:
     )
     transform_label = sitk.ReadTransform(transform_label_filnm).GetInverse()
 
-path_label = f"./miccai2024_data/synthetic/label-{annotator}/label-mr-space/{case}/seg.nii.gz"
+path_label = f"./experiments/synthetic/label-{annotator}/label-mr-space/{case}/seg.nii.gz"
 if not os.path.exists(path_label):
     new_seg = resample_seg(seg, img_mr_ref, transform_label)
     os.makedirs(os.path.dirname(path_label), exist_ok=True)
@@ -223,19 +219,7 @@ for modalities_set in total_subsets_mr:
                 
                 reslice_img = create_reslicing(path_output_data, us_mask_probe, flnm + f"_{mod}.nii.gz")
                 mr_resample_slice_path = path_output.format(annotator, NB_cases, seed, case, 'data_reslice', flnm + f"_{mod}.nii.gz")
-                reslice_img.to_filename(mr_resample_slice_path)                            
-
-            # Write zero images for missing modalities
-            # for mod in missing_modalities:
-            #     zeros_img = zeros_like(us_sitk)
-            #     mr_resample_path = path_output.format(annotator, NB_cases, case, "data", flnm + f"_{mod}.nii.gz")
-            #     sitk.WriteImage(
-            #         zeros_img,
-            #         path_output.format(annotator, NB_cases, case, "data", flnm + f"_{mod}.nii.gz"),
-            #     )
-            #     reslice_img = create_reslicing(path_output_data, us_mask_probe, flnm + f"_{mod}.nii.gz")
-            #     mr_resample_slice_path = path_output.format(annotator, NB_cases, case, 'data_reslice', flnm + f"_{mod}.nii.gz")
-            #     reslice_img.to_filename(mr_resample_slice_path)
+                reslice_img.to_filename(mr_resample_slice_path)                           
                     
 
             # Resample segmentation into US space

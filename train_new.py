@@ -18,7 +18,7 @@ from itertools import chain, combinations
 
 from networks.unet import UNet2D
 from networks.mhvae import MHVAE2D
-from utilities.dataloader_miccai24_new import *
+from dataloaders.dataloader_miccai24_new import *
 from utilities.losses import *
 from utilities.utils import create_logger, infinite_iterable, poly_lr, draw_curve
 from utilities.generation import *

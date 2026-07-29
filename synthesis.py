@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 import argparse
 import os
 from tqdm import tqdm
@@ -17,9 +14,10 @@ from utilities.utils import (
 
 from networks.mhvae import MHVAE2D
 
-import time
+
 
 def run_inference(paths_dict, saving_path, model, device, opt):
+    print(f"Modalities are {opt.modalities}")
 
     # Define transforms for data normalization and augmentation
 
@@ -33,54 +31,49 @@ def run_inference(paths_dict, saving_path, model, device, opt):
     
     model.eval()  # Set model to evaluate mode
 
-    torch.cuda.synchronize()
-    start = time.perf_counter()
-
     # Iterate over data
-    for batch in dataloader:
+    for batch in tqdm(dataloader):
         
         imgs = dict()
         imgs_norm = dict()
         nonempty_list = []
         for mod in opt.modalities:
             if mod in batch.keys():
-                # imgs[mod] = batch[mod].to(device).permute(0,4,1,2,3)
-                imgs[mod] = batch[mod].to(device).permute(0,2,1,3,4)
-                # print(f"DEBUG: Modality {mod} shape is {imgs[mod].shape}", flush=True)
-                imgs[mod] = imgs[mod].reshape(-1, 1, *imgs[mod].shape[3:5])
-                # print(f"DEBUG: Modality {mod} shape is {imgs[mod].shape}", flush=True)
+                imgs[mod] = batch[mod].to(device).permute(0,4,1,2,3)
+                imgs[mod] = imgs[mod].reshape(-1, 1, *batch[mod].shape[2:4])
                 nonempty_list.append(mod)
-
-        # print(f"Modalities: {nonempty_list}", flush=True)
         
         first_mod = nonempty_list[0]
-        print('first_mod ', first_mod, flush=True)
         subset_mr = [k for k in nonempty_list if not 'us'==k]
-        target_modality = model.modalities[0]
-        print('target_mod ', target_modality, flush=True)
         with torch.no_grad():      
             affine = batch[f"{first_mod}_affine"][0].cpu().numpy().squeeze()
-            name = batch[f"{first_mod}_name"][0].split('_')[0] + '_{}.nii.gz'
+            name = batch[f"{first_mod}_name"][0].replace(f'_{first_mod}','')+'_{}.nii.gz'
             
             temps = [0.3,0.5,0.7,1.]
-            # temp = np.random.choice(temps)
             for temp in temps:
                 # Save MR
                 pred, _, _  = model({mod:imgs[mod].clone() for mod in subset_mr}, temp, return_feat=True, return_cat=True)
                 pred = pred[:,0:1,...]
                 save(pred, affine, os.path.join(saving_path, name.format(temp)))
-
-    torch.cuda.synchronize()
-    end = time.perf_counter() - start
-    print(f'Time: {end:.3f}s')      
+        
                         
 
 def main():
     opt = parsing_data()
-
     set_determinism(seed=opt.seed)
 
-    path_data = "/lustre/fsn1/projects/rech/jkq/ubt15jc/remind-100/upenn"
+    # FOLDERS
+    fold_dir = opt.model_dir
+    
+    split_path = os.path.join(opt.model_dir, 'split.csv')
+    df_split = pd.read_csv(split_path,header =None)
+    list_file_inference = df_split[df_split[1].isin(['inference'])][0].tolist()
+    assert opt.case+'-' in list_file_inference, f'Synthesizor was trained with {opt.case} - Forbidden'
+    print(f'[INFO] Check passed: synthesizor was not trained with {opt.case}')
+    
+    output_path = os.path.join(opt.output)
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
 
     if torch.cuda.is_available():
         print('[INFO] GPU available.')
@@ -89,12 +82,31 @@ def main():
         raise Exception(
             "[INFO] No GPU found or Wrong gpu id, please run without --cuda")
         
-    # MODEL
-    print("[INFO] Building hierarchical multi-modal model")
+    print("[INFO] Reading data")
+
+    input_path = opt.input
+
+    # PHASES
+    nii_files = [k for k in os.listdir(input_path) if '.nii.gz' in k]
+    nii_cases = [k.split('_')[0]+'_' for k in os.listdir(input_path) if '.nii' in k]
+    nii_cases = sorted(list(set(nii_cases)))
+
+    paths_dict = list()
+    for case in nii_cases:
+        paths_dict_case = dict()
+        for mod in opt.modalities:
+            selected = [k for k in nii_files if case in k and f"_{mod}.nii" in k]
+            assert len(selected)<2, f"Error too many files found: {selected}"
+            if len(selected)==1:
+                paths_dict_case[mod] = os.path.join(input_path, selected[0])
+        paths_dict.append(paths_dict_case)
+        
+    # MODEL 
+    print("[INFO] Building hierarchical multi-modal model")  
     model = MHVAE2D(
-        modalities=opt.modalities,
-        base_num_features=opt.base_features,
-        num_pool=opt.pools,
+        modalities=opt.modalities,   
+        base_num_features=opt.base_features,   
+        num_pool=opt.pools,   
         original_shape=opt.spatial_shape[:2],
         max_features=opt.max_features,
         with_residual=opt.no_res,
@@ -102,55 +114,21 @@ def main():
         nb_finalblocks=opt.nb_finalblocks,
         nfeat_finalblock=opt.nfeat_finalblock,
         ).to(device)
-    model.eval()
+    
+    # Training parameters 
+    save_path = os.path.join(opt.model_dir, 'models', './CP_{}_{}.pth')
+    assert os.path.exists(save_path.format('main',opt.epoch_inf)), f"Model weights not found: {save_path.format('main', opt.epoch_inf)}"
 
-    print("[INFO] Reading data", flush=True)
-
-    for folder in tqdm(os.listdir(path_data)):
-
-        input_path = os.path.join(path_data, folder, 'data_mri')
-        output_path = os.path.join(path_data, folder, 'data_us_old')
-
-        if os.path.exists(output_path) and len(os.listdir(output_path)) >= 280:
-            print(f"Case already processed, skipping.")
-            continue
-        else:
-            os.makedirs(output_path, exist_ok=True)
-
-        # PHASES
-        nii_files = [k for k in os.listdir(input_path) if '.nii.gz' in k]
-
-        from collections import defaultdict
-        groups = defaultdict(dict)
-        for fn in nii_files:
-            grp = fn.split('_', 1)[0]                      # '00188-11-FLAIR-T1GD-T2'
-            token = fn.rsplit('_', 1)[1].split('.')[0]     # 'T2' or 'seg'
-            key = token.lower()
-            if key == 'seg' :
-                continue
-            if key == 't1gd':
-                key = 'cet1'
-            path = os.path.join(input_path, fn) 
-            groups[grp][key] = path
-        # return list of dicts (sorted by group name)
-        paths_dict = [groups[k] for k in sorted(groups)]
-
-        # Training parameters
-        fold = np.random.randint(0, 3)
-        model_dir = os.path.join(opt.model_dir, f'mmhvae_f{fold}')
-        save_path = os.path.join(model_dir, 'models', './CP_{}_{}.pth')
-        assert os.path.exists(save_path.format('main',opt.epoch_inf)), f"Model weights not found: {save_path.format('main', opt.epoch_inf)}"
-
-        model.load_state_dict(torch.load(save_path.format('main',opt.epoch_inf)))
-        print(f"Loading model from {save_path.format('main',opt.epoch_inf)}", flush=True)
-
-        run_inference(
-            paths_dict, 
-            output_path,
-            model, 
-            device, 
-            opt)
+    model.load_state_dict(torch.load(save_path.format('main',opt.epoch_inf)))
+    print(f"Loading model from {save_path.format('main',opt.epoch_inf)}")
         
+    run_inference(
+        paths_dict, 
+        output_path,
+        model, 
+        device, 
+        opt)
+
 
 
 def parsing_data():
@@ -159,7 +137,6 @@ def parsing_data():
 
     parser.add_argument('--model_dir',
                         type=str,
-                        default='models/synthesis',
                         help='Save model directory')
 
     parser.add_argument('--input',
@@ -262,3 +239,5 @@ def parsing_data():
 
 if __name__ == '__main__':
     main()
+
+

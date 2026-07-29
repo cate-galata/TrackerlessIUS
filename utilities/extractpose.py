@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import os
 import SimpleITK as sitk
-from utils.extractsurface import * 
+from utilities.extractsurface import * 
 
 def flip_point(pt, width):
     flipped_x = (width - 1) - pt[0]

@@ -13,7 +13,7 @@ from tqdm import tqdm
 from monai.utils import set_determinism
 
 from networks.unet import UNet2D
-from utilities.dataloader_miccai24 import get_training_loader, get_validation_loader
+from dataloaders.dataloader_miccai24 import get_training_loader, get_validation_loader
 from utilities.losses import DC, DC_SOFT
 from utilities.utils import create_logger, infinite_iterable, poly_lr, draw_curve
 

@@ -20,11 +20,11 @@ from utilities.generatesweep import *
 from utilities.generation import *
 from utilities.utils import set_determinism
 
-ALL_CASES = ["Case011", "Case025", "Case045", "Case052", "Case056", "Case070", "Case085", "Case103", "Case112", "Case114"]
+ALL_CASES = ["Case011", "Case025", "Case027", "Case045", "Case052", "Case056", "Case070", "Case074", "Case085", "Case099", "Case103", "Case112", "Case114"]
 
 parser = argparse.ArgumentParser(
                     prog='Generatedata',
-                    description='This script create sweeps of MR')
+                    description='This script creates ultrasound sweeps on MRI data.')
 
 parser.add_argument('--K', type=int, default=1, help='Number of K sweeps')
 parser.add_argument('--annotator', type=str, default="remind", help='Annotator')
@@ -37,19 +37,19 @@ args = parser.parse_args()
 NB_cases = args.K
 annotator = args.annotator
 case = args.case
+assert case in ALL_CASES, f"Error {case} in not in {ALL_CASES}"
 seed = args.seed
 
 
-cluster_path = '/lustre/fsn1/projects/rech/jkq/ubt15jc'
-path_data = f'../data/coregistered/mri-space'
-reg_folder = f'../data/registration/mni'
-us_path_folder = f'../data/coregistered/us-space'
-path_strip = "./miccai2024_data/skullstripping_hdbet/"
-mni_surf_path = '../data/mni/mni_brain_surface.nii.gz.seg.nrrd'
-mni_non_viable_path = '../data/mni/refined_non_viable_surface_mask2.nii.gz'
+path_data = f'./data/coregistered/mri-space'
+reg_folder = f'./data/registration/mni'
+us_path_folder = f'./data/coregistered/us-space'
+path_strip = "./experiments/skullstripping_hdbet/"
+mni_surf_path = './data/mni/mni_brain_surface.nii.gz.seg.nrrd'
+mni_non_viable_path = './data/mni/refined_non_viable_surface_mask2.nii.gz'
 
-path_output = "./miccai2024_data/synthetic/{}-{}-{}/{}/{}/{}"
-path_label = f"./miccai2024_data/synthetic/label-{annotator}/label-mr-space/{case}/seg.nii.gz"
+path_output = "./experiments/synthetic/{}-{}-{}/{}/{}/{}"
+path_label = f"./experiments/synthetic/label-{annotator}/label-mr-space/{case}/seg.nii.gz"
 
 
 set_determinism(seed=seed)
@@ -175,13 +175,13 @@ for modalities_set in total_subsets_mr:
         P_0 = filtered_arr[chosen_idx]
 
         # Load US + probe mask + keypoints
-        kp_img = nib.load(f'../data/precomputed_us_masks/{us}/{us}-keypoints.nii.gz')
+        kp_img = nib.load(f'./data/precomputed_us_masks/{us}/{us}-keypoints.nii.gz')
         keypoints = kp_img.get_fdata()
         frames_w_surface = np.argwhere(keypoints==4)[:, 2]
         N = len(frames_w_surface)
         period = 2 * (N - 1) if N > 1 else 1  
 
-        fov_img = nib.load(f'../data/precomputed_us_masks/{us}/{us}-fov_mask.nii.gz')
+        fov_img = nib.load(f'./data/precomputed_us_masks/{us}/{us}-fov_mask.nii.gz')
         fov_mask = fov_img.get_fdata()
         fov_mask = torch.from_numpy(fov_mask).to(device)
 
@@ -389,19 +389,6 @@ for modalities_set in total_subsets_mr:
 
         listToStr = "-".join([str(elem) for elem in modalities_set])
         flnm = f"{case}-{us}-{listToStr}"
-
-        # np.savez(
-        #     path_output.format(annotator, NB_cases, seed, case,
-        #                     'tracking', flnm + '_trajectory.npz'),
-        #     Ps=arr_Ps,
-        #     d_vecs=arr_d_vecs,
-        #     i_vecs=arr_i_vecs,
-        #     P_us=P_us.cpu().numpy(),
-        #     dx_mm=0.5,
-        #     dy_mm=0.5,
-        #     H=192,
-        #     W=192,
-        # )
 
         # Resample MR modalities into US space
         for mod in modalities_set:
