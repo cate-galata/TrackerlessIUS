@@ -1,0 +1,10 @@
+torch
+torchvision
+nibabel
+numpy
+pandas
+scikit-image
+scipy
+SimpleITK
+tqdm
+git+https://github.com/aaronkujawa/MONAI.git@medtronic
