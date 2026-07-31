@@ -111,8 +111,8 @@ output_folder = './experiments/test_set/visualizations'
 path_predictions = './experiments/test_set'
 modality = {"Case027": "t2"}
 methods_eval = ["brats_unet"]
-protocols_eval = ["remind"]
-path_us = './experiments/test_set/remind/imgs/reslice{}_crop.nii.gz'
+protocols_eval = ["n1"]
+path_us = './experiments/test_set/n1/imgs/reslice{}_crop.nii.gz'
 path_gt = './experiments/test_set/{}/gt/reslice{}_crop.nii.gz'
 
 if save_gif:

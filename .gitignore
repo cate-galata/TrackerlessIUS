@@ -224,8 +224,6 @@ __marimo__/
 *.html
 *.pth
 *.out
-*.txt
 *.jpg
 *.pickle
 ._*
-jobs

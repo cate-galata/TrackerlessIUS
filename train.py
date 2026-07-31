@@ -13,7 +13,7 @@ from tqdm import tqdm
 from monai.utils import set_determinism
 
 from networks.unet import UNet2D
-from dataloaders.dataloader_miccai24 import get_training_loader, get_validation_loader
+from dataloaders.dataloader import get_training_loader, get_validation_loader
 from utilities.losses import DC, DC_SOFT
 from utilities.utils import create_logger, infinite_iterable, poly_lr, draw_curve
 
@@ -57,7 +57,7 @@ def train(paths_dict, model, criterion, soft_criterion, device, save_path, logge
     logger.info(f"Case {opt.case}")
     since = time.time()
 
-    # const_iter = len([k for k in os.listdir(f"./miccai2024_data/synthetic/remind-10/{opt.case}/data_us")]) - 20
+    # const_iter = len([k for k in os.listdir(f"./miccai2024_data/synthetic/n1-10-2/{opt.case}/data_us")]) - 20
     # print('const_iter ', const_iter)
 
     # Dataloaders
@@ -343,8 +343,8 @@ def main():
         lab_flnm = subject.split("_")[0] + "_seg.nii.gz"
         lab_path = os.path.join(opt.path_labels, lab_flnm)
         if split == 'test':
-            img_path = f'./miccai2024_data/test_set/remind/imgs/reslice{subject}_crop.nii.gz'
-            lab_path = f'./miccai2024_data/test_set/remind/gt/reslice{subject}_crop.nii.gz'
+            img_path = f'./miccai2024_data/test_set/n1/imgs/reslice{subject}_crop.nii.gz'
+            lab_path = f'./miccai2024_data/test_set/n1/gt/reslice{subject}_crop.nii.gz'
         if os.path.exists(img_path) and os.path.exists(lab_path):
             paths_dict[split].append({"img": img_path, "seg": lab_path})
 

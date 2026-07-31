@@ -45,15 +45,15 @@ cases_n2 = ['Case027', 'Case045', 'Case074', 'Case085', 'Case099', 'Case103', 'C
 print(f'### VOLUMETRIC ###')
 
 all_scores = dict() 
-protocols_eval = ['remind', 'erikson']
-methods_eval = ['resect', 'brats', 'bratious', 'tracking', '10_100_2_miccai', 'otf_100_2',]
-name = {'resect': 'ReSECT Unet','brats':'Brats Unet', 'bratious': 'Bratious Unet', 'tracking': 'Navigation', '10_100_2_miccai': 'K=10 MICCAI', 'otf_100_2': 'OTF Unet'}
+protocols_eval = ['n1', 'n2']
+methods_eval = ['resect_unet', 'brats_unet', 'bratious_unet', 'tracking', '10_100_2_miccai', 'otf_100_2',]
+name = {'resect_unet': 'ReSECT Unet','brats_unet':'Brats Unet', 'bratious_unet': 'Bratious Unet', 'tracking': 'Navigation', '10_100_2_miccai': 'K=10 MICCAI', 'otf_100_2': 'OTF Unet'}
 
 for method in methods_eval:
     all_scores[method] = dict()
     string = f'{name[method]} &'
     for protocol in protocols_eval:
-        if protocol == 'remind':
+        if protocol == 'n1':
             cases = cases_n1
         else:
             cases = cases_n2
@@ -87,8 +87,8 @@ print('### SLICE-BY-SLICE ###')
 
 all_scores = dict() 
 protocols_eval = ['slice']
-methods_eval = ['resect', 'brats', 'bratious', 'tracking', '10_100_2_miccai', 'otf_100_2', 'manual']
-name = {'resect': 'ReSECT Unet','brats':'Brats Unet', 'bratious': 'Bratious', 'tracking': 'Navigation', '10_100_2_miccai': 'K=10 MICCAI', 'otf_100_2': 'OTF Unet', 'manual': 'Manual'}
+methods_eval = ['resect_unet', 'brats_unet', 'bratious_unet', 'tracking', '10_100_2_miccai', 'otf_100_2', 'manual']
+name = {'resect_unet': 'ReSECT Unet','brats_unet':'Brats Unet', 'bratious_unet': 'Bratious', 'tracking': 'Navigation', '10_100_2_miccai': 'K=10 MICCAI', 'otf_100_2': 'OTF Unet', 'manual': 'Manual'}
 
 for method in methods_eval:
     all_scores[method] = dict()

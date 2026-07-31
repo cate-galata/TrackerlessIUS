@@ -12,7 +12,7 @@ from utilities.utils import (
     save,
     set_determinism)
 
-from networks.mhvae import MHVAE2D
+from networks.mhvae_fast import MHVAE2D
 
 
 
@@ -45,19 +45,28 @@ def run_inference(paths_dict, saving_path, model, device, opt):
         
         first_mod = nonempty_list[0]
         subset_mr = [k for k in nonempty_list if not 'us'==k]
-        with torch.no_grad():      
+
+        # target_modality we want to decode: us
+        target_modality = model.modalities[0]
+        with torch.inference_mode():
             affine = batch[f"{first_mod}_affine"][0].cpu().numpy().squeeze()
             name = batch[f"{first_mod}_name"][0].replace(f'_{first_mod}','')+'_{}.nii.gz'
-            
+
+            model_input = {mod: imgs[mod].clone() for mod in subset_mr}
+
+            # Encode once: this is temp-independent 
+            encoded = model.encode(model_input)
+
             temps = [0.3,0.5,0.7,1.]
+            # temp = np.random.choice(temps)
             for temp in temps:
                 # Save MR
-                pred, _, _  = model({mod:imgs[mod].clone() for mod in subset_mr}, temp, return_feat=True, return_cat=True)
-                pred = pred[:,0:1,...]
+                pred, _, _ = model.decode(
+                    encoded, temp,
+                    return_feat=True, return_cat=True,
+                    target_modality=target_modality,  # only decode the modality we keep
+                    compute_kl=False)                  
                 save(pred, affine, os.path.join(saving_path, name.format(temp)))
-        
-                        
-
 def main():
     opt = parsing_data()
     set_determinism(seed=opt.seed)

@@ -35,7 +35,7 @@ parser = argparse.ArgumentParser(
                     description='This script creates ultrasound sweeps on MRI data.')
 
 parser.add_argument('--K', type=int, default=1, help='Number of K sweeps')
-parser.add_argument('--annotator', type=str, default="remind", help='Annotator')
+parser.add_argument('--annotator', type=str, default="n1", help='Annotator')
 parser.add_argument('--case', type=str, default="Case112", help='Case')
 parser.add_argument('--seed', type=int, default=0, help='Seed')
 
@@ -54,6 +54,8 @@ case = args.case
 assert case in ALL_CASES, f"Error {case} in not in {ALL_CASES}"
 seed = args.seed
 
+print(case)
+
 path_output = "./experiments/synthetic/{}-{}-{}/{}/{}/{}"
 
 # Folders from data processing
@@ -61,6 +63,7 @@ output_path_reg_mr = "./data/registration/rigid"
 output_path_reg_us = "./data/registration/affine/"
 path_imgs = pd.read_csv("./data/refs_files.csv", index_col=0).T
 
+path_mr_space = "./data/coregistered/mri-space/"
 path_us_space = "./data/coregistered/us-space/"
 path_us_all = os.path.join(path_us_space, "{0}/{0}-us.nii.gz") 
 path_folder = "./data/nrrd"
@@ -99,11 +102,12 @@ else:
     )
     transform_label = sitk.ReadTransform(transform_label_filnm).GetInverse()
 
-path_label = f"./experiments/synthetic/label-{annotator}/label-mr-space/{case}/seg.nii.gz"
-if not os.path.exists(path_label):
-    new_seg = resample_seg(seg, img_mr_ref, transform_label)
-    os.makedirs(os.path.dirname(path_label), exist_ok=True)
-    sitk.WriteImage(new_seg, path_label)
+# path_label = f"./experiments/synthetic/label-{annotator}/label-mr-space/{case}/seg.nii.gz"
+# if not os.path.exists(path_label):
+#     new_seg = resample_seg(seg, img_mr_ref, transform_label)
+#     os.makedirs(os.path.dirname(path_label), exist_ok=True)
+#     sitk.WriteImage(new_seg, path_label)
+path_label = os.path.join(path_mr_space, case, f'{case}-target_{annotator}.nii.gz')
 
 # --------------------
 # 2) Prepare output folders + candidate US list
@@ -136,7 +140,7 @@ total_subsets_mr = list(
     chain.from_iterable(combinations(modalities, r) for r in range(1, len(modalities) + 1))
 )
 
-print(total_subsets_mr)
+print(len(total_subsets_mr), 'MRI combinations: ', modalities)
 
 path_output_data = path_output.format(annotator, NB_cases, seed, case, "data", "")
 

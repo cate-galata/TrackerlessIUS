@@ -125,8 +125,6 @@ def get_validation_loader(val_files, batch_size, num_workers, cache=False):
             LoadImaged(keys=["img", "seg"]),
             EnsureChannelFirstd(keys=["img", "seg"]),
             NormalizeIntensityd(keys=modality_keys, nonzero=use_nonzero),
-            # ScaleIntensityd(keys="img"),
-            # RandRotate90d(keys=["img", "seg"], prob=0.5, spatial_axes=[0, 2]),
             EnsureTyped(keys=["img", "seg"]),
         ]
     )

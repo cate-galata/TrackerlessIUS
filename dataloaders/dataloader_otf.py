@@ -90,9 +90,7 @@ def get_training_loader(batch_size, num_workers, device, mod_vols=None, total_su
 
     train_transforms = Compose(
         [
-            # load_image,
             ensure_channel_first,
-            # norm_transform,  # -1
             sample_foreground_locations,  # 0
             rand_affine,  # 1
             rand_gauss_noise,  # 2

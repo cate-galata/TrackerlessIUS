@@ -27,7 +27,7 @@ parser = argparse.ArgumentParser(
                     description='This script creates ultrasound sweeps on MRI data.')
 
 parser.add_argument('--K', type=int, default=1, help='Number of K sweeps')
-parser.add_argument('--annotator', type=str, default="remind", help='Annotator')
+parser.add_argument('--annotator', type=str, default="n1", help='Annotator')
 parser.add_argument('--case', type=str, default="Case027", help='Case')
 parser.add_argument('--seed', type=int, default=0, help='Seed')
 
@@ -40,6 +40,7 @@ case = args.case
 assert case in ALL_CASES, f"Error {case} in not in {ALL_CASES}"
 seed = args.seed
 
+print(case)
 
 path_data = f'./data/coregistered/mri-space'
 reg_folder = f'./data/registration/mni'
@@ -49,8 +50,6 @@ mni_surf_path = './data/mni/mni_brain_surface.nii.gz.seg.nrrd'
 mni_non_viable_path = './data/mni/refined_non_viable_surface_mask2.nii.gz'
 
 path_output = "./experiments/synthetic/{}-{}-{}/{}/{}/{}"
-path_label = f"./experiments/synthetic/label-{annotator}/label-mr-space/{case}/seg.nii.gz"
-
 
 set_determinism(seed=seed)
 
@@ -65,7 +64,7 @@ total_subsets_mr = list(
     chain.from_iterable(combinations(modalities, r) for r in range(1, len(modalities) + 1))
 )
 
-print(total_subsets_mr)
+print(len(total_subsets_mr), 'MRI combinations: ', modalities)
 
 path_mri = glob.glob(os.path.join(path_data, case, f'{case}-**_ref.nii.gz'))[0]
 img_mri = sitk.ReadImage(path_mri)
@@ -87,7 +86,7 @@ for mod in modalities:
         'inv_affine': inv_affine
     }
 
-path_target = os.path.join(path_data, case, f'{case}-target.nii.gz')
+path_target = os.path.join(path_data, case, f'{case}-target_{annotator}.nii.gz')
 img_target = sitk.ReadImage(path_target)
 target_nib = nib.load(path_target)
 data_target = target_nib.get_fdata()        
@@ -115,7 +114,7 @@ border = find_boundaries(data_noncerebrum, mode="inner")
 
 border_pixels = np.stack(np.where(border),-1)
 
-new_arr = vox_to_world_many(nib.load(path_label).affine, border_pixels)
+new_arr = vox_to_world_many(nib.load(path_target).affine, border_pixels)
 
 
 # Register viable craniotomy locations from the labeled MNI template

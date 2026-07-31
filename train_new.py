@@ -18,7 +18,7 @@ from itertools import chain, combinations
 
 from networks.unet import UNet2D
 from networks.mhvae import MHVAE2D
-from dataloaders.dataloader_miccai24_new import *
+from dataloaders.dataloader_otf import *
 from utilities.losses import *
 from utilities.utils import create_logger, infinite_iterable, poly_lr, draw_curve
 from utilities.generation import *
@@ -155,7 +155,7 @@ def train(paths_dict, synthesizer, model, criterion, soft_criterion, criterion_c
     torch.cuda.synchronize()
     since = time.perf_counter()
 
-    const_iter = len([k for k in os.listdir(f"./miccai2024_data/synthetic/remind-10-2/{opt.case}/synthetic_data_reslice")]) - 20
+    const_iter = len([k for k in os.listdir(f"./miccai2024_data/synthetic/n1-10-2/{opt.case}/data_us")]) - 20
     print('const_iter ', const_iter)
 
     # Dataloaders
@@ -660,7 +660,7 @@ def main():
         nonlin_kwargs=net_nonlin_kwargs,
     ).to(device)
 
-    # checkpoint_path = './models/bratious/0.01/False/remind-100-0.01/models/CP_final.pth'
+    # checkpoint_path = './models/bratious/0.01/False/n1-100-0.01/models/CP_final.pth'
     # assert os.path.isfile(checkpoint_path), f"no checkpoint found {checkpoint_path}"
     # model.load_state_dict(torch.load(checkpoint_path))
     # logger.info("[INFO] Pre-trained model has been loaded")
@@ -723,7 +723,7 @@ def parsing_data():
     parser.add_argument("--case", type=str, default="Case112")
     parser.add_argument("--path_data", type=str, default="../data/robustmislite/Training_R_low/")
     parser.add_argument("--path_labels", type=str, default=None, help="Path to the labels")
-    parser.add_argument("--path_test", type=str, default='./miccai2024_data/test_set/remind', help="Path to the test data")
+    parser.add_argument("--path_test", type=str, default='./miccai2024_data/test_set/n1', help="Path to the test data")
     parser.add_argument("--path_strip", type=str, default=None, help="Path to the skull stripped mri volumes")
     parser.add_argument("--comment", type=str, default="", help="Experiment comment/tag")
     parser.add_argument("--learning_rate", type=float, default=1e-2, help="Initial learning rate")
