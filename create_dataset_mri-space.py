@@ -19,8 +19,7 @@ output_path_reg_mr = './data/registration/rigid'
 path_imgs = pd.read_csv('data/refs_files.csv', index_col=0).T
 target_tumor = pd.read_csv('data/choice_target.csv', index_col=0).T
 
-# cases_toregister = path_imgs.columns.tolist()
-cases_toregister = ["Case011", "Case025", "Case027", "Case045", "Case052", "Case056", "Case070", "Case074", "Case085", "Case099", "Case103", "Case112", "Case114"]
+cases_toregister = path_imgs.columns.tolist()
 
 print(f"Number of cases to register {len(cases_toregister)}")
 
@@ -29,6 +28,9 @@ os.makedirs(output_path_final, exist_ok=True)
 
 errors = []
 for case in tqdm(cases_toregister):
+    if os.path.exists(os.path.join(output_path_final, case)):
+        print(f"Case {case} already processed, skipping...")
+        continue
     try:
         # Define folder paths for case
         path_premr = os.path.join(path_folder, case, 'Preop-MR')

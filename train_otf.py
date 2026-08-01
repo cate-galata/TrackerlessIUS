@@ -4,6 +4,7 @@ import pickle
 import time
 import itertools
 import monai
+import random
 
 import numpy as np
 import pandas as pd
@@ -54,7 +55,7 @@ def build_validation_and_test_paths(output_path: str, case: str, path_test: str)
 
     def add_subject(split, subject, path_data):
         img_path = os.path.join(path_data, subject)
-        lab_flnm = subject.split("_")[0] + "_target.nii.gz"
+        lab_flnm = subject.split("_")[0] + f"_target.nii.gz"
         lab_path = os.path.join(path_data, lab_flnm)
 
         if split == "test":
@@ -184,7 +185,7 @@ def train(
     torch.cuda.synchronize()
     since = time.perf_counter()
 
-    const_iter = len([k for k in os.listdir(f"./miccai2024_data/synthetic/n1-10-2/{opt.case}/data_us")]) - 20
+    const_iter = len([k for k in os.listdir(f"./experiments/synthetic/n1-10-2/{opt.case}/data_us")]) - 20
     print('const_iter ', const_iter)
 
     # Dataloaders
@@ -545,9 +546,9 @@ def main():
 
     context = sweep_generator.prepare_case_context(
         case=opt.case,
-        annotator="n1",
+        annotator=opt.annotator,
         drop_modalities=opt.drop_modalities,
-        target_name="target",
+        target_name=f"target",
     )
 
     # ------------------------------------------------------------------
@@ -622,7 +623,7 @@ def main():
     paths_dict = build_validation_and_test_paths(
         output_path=output_path,
         case=opt.case,
-        path_test=opt.path_test
+        path_test=opt.path_test,
     )
 
     for split in ["validation", "test"]:
@@ -658,15 +659,16 @@ def parsing_data():
     parser.add_argument("--synthesizer_dir", type=str, help="Path to the synthesizer directory")
     parser.add_argument("--batch_size", type=int, default=256, help="Size of the batch size (default: 64)")
     parser.add_argument("--case", type=str, default="Case112")
+    parser.add_argument("--annotator", type=str, default="n1")
     parser.add_argument("--path_data", type=str, default="../data/robustmislite/Training_R_low/")
     parser.add_argument("--path_labels", type=str, default=None, help="Path to the labels")
-    parser.add_argument("--path_test", type=str, default='./miccai2024_data/test_set/n1', help="Path to the test data")
+    parser.add_argument("--path_test", type=str, default='./experiments/test_set/n1', help="Path to the test data")
     parser.add_argument("--path_strip", type=str, default=None, help="Path to the skull stripped mri volumes")
     parser.add_argument("--comment", type=str, default="", help="Experiment comment/tag")
     parser.add_argument("--learning_rate", type=float, default=1e-2, help="Initial learning rate")
     parser.add_argument("--epochs", type=int, default=1000, help="Total number of epochs")
     parser.add_argument("--nb_val", type=int, default=20, help="Total validation images")
-    parser.add_argument("--output_val", type=str, default='./miccai2024_data/synthetic/validation_otf', help="Path to the validation data")
+    parser.add_argument("--output_val", type=str, default='./experiments/synthetic/validation_otf', help="Path to the validation data")
     parser.add_argument("--pretrain_epoch", type=str, default="final")
     parser.add_argument("--synthesizer_epoch", type=str, default=1000)
     parser.add_argument("--spacial", action="store_true", help="Aug spacial enabled")

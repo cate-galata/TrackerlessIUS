@@ -219,6 +219,7 @@ __marimo__/
 *.tfm
 *.npz
 *.pdf
+*.txt
 
 # Logs
 *.html

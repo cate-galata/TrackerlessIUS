@@ -34,9 +34,10 @@ python train_otf.py \
     --epochs $EPOCH \
     --case $CASE \
     --output_val ./experiments/synthetic/$METHOD-validation_otf-$SEED \
+    --path_test ./experiments/test_set/$METHOD \
     --comment $METHOD-otf-$EPOCH-$LR-$SEED \
     --seed $SEED \
-    --drop_modalities $DROP
+    --annotator $METHOD
 
 python inference.py \
     --model_dir ./models/ \

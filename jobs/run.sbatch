@@ -26,22 +26,22 @@ SEED=2
 
 python generate_and_synthesize.py --K $K --annotator $METHOD --case $CASE --fold $FOLD --seed $SEED
 
-python train.py \
-    --model_dir ./models/ \
-    --path_data ./experiments/synthetic/$METHOD-$K-$SEED/$CASE/synthetic_data_reslice/ \
-    --path_labels ./experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_reslice/ \
-    --batch_size 1 \
-    --learning_rate $LR \
-    --epochs $EPOCH \
-    --case $CASE \
-    --seed $SEED \
-    --comment $METHOD-$K-$EPOCH-$LR-$SEED
+# python train.py \
+#     --model_dir ./models/ \
+#     --path_data ./experiments/synthetic/$METHOD-$K-$SEED/$CASE/synthetic_data_reslice/ \
+#     --path_labels ./experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_reslice/ \
+#     --batch_size 1 \
+#     --learning_rate $LR \
+#     --epochs $EPOCH \
+#     --case $CASE \
+#     --seed $SEED \
+#     --comment $METHOD-$K-$EPOCH-$LR-$SEED
 
-python inference.py \
-    --model_dir ./models/ \
-    --path_data_true ./experiments/test_set/${METHOD}/imgs/reslice${CASE}_crop.nii.gz \
-    --batch_size 1 \
-    --learning_rate $LR \
-    --case $CASE \
-    --seed $SEED \
-    --comment $METHOD-$K-$EPOCH-$LR-$SEED
+# python inference.py \
+#     --model_dir ./models/ \
+#     --path_data_true ./experiments/test_set/${METHOD}/imgs/reslice${CASE}_crop.nii.gz \
+#     --batch_size 1 \
+#     --learning_rate $LR \
+#     --case $CASE \
+#     --seed $SEED \
+#     --comment $METHOD-$K-$EPOCH-$LR-$SEED
