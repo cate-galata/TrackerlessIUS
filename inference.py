@@ -165,6 +165,7 @@ def parsing_data():
     parser.add_argument("--spacial", action="store_true", help="Aug spacial abled")
 
     parser.add_argument("--benchmark_fps", action="store_true", help="Measure inference speed")
+    parser.add_argument('--seed', type=int, default=2)
 
     return parser.parse_args()
 

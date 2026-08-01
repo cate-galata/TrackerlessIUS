@@ -2,9 +2,7 @@ import argparse
 import os
 import pickle
 import time
-import sys
 import itertools
-import torch_tensorrt
 import monai
 
 import numpy as np
@@ -14,21 +12,15 @@ import torchvision
 from torch import nn
 from tqdm import tqdm
 from monai.utils import set_determinism
-from itertools import chain, combinations
 
 from networks.unet import UNet2D
-from networks.mhvae import MHVAE2D
 from dataloaders.dataloader_otf import *
 from utilities.losses import *
 from utilities.utils import create_logger, infinite_iterable, poly_lr, draw_curve
-from utilities.generation import *
-from utilities.generatesweep import *
-from utilities.generate_data import generate_us_sweep, synthesize_us_sweep
+from utilities.sweep_generator import SyntheticSweepGenerator, SyntheticSweepConfig, SynthesisConfig
 
 import monai.transforms.compose
 import monai.transforms.transform
-from scipy.spatial import KDTree
-from scipy.ndimage import binary_dilation
 
 # ----------------------------
 # Constants / defaults
@@ -56,6 +48,30 @@ W_out = 192
 SAFE_MAX = np.iinfo(np.uint32).max 
 monai.transforms.compose.MAX_SEED = SAFE_MAX
 monai.transforms.transform.MAX_SEED = SAFE_MAX
+
+def build_validation_and_test_paths(output_path: str, case: str, path_test: str):
+    paths_dict = {"validation": [], "test": []}
+
+    def add_subject(split, subject, path_data):
+        img_path = os.path.join(path_data, subject)
+        lab_flnm = subject.split("_")[0] + "_target.nii.gz"
+        lab_path = os.path.join(path_data, lab_flnm)
+
+        if split == "test":
+            img_path = f"{path_data}/imgs/reslice{subject}_crop.nii.gz"
+            lab_path = f"{path_data}/gt/reslice{subject}_crop.nii.gz"
+
+        if os.path.exists(img_path) and os.path.exists(lab_path):
+            paths_dict[split].append({"img": img_path, "seg": lab_path})
+
+    for subject in os.listdir(output_path):
+        suffix = subject.replace(".nii.gz", "").split("_")[-1]
+        if suffix not in ["0.3", "0.5", "0.7", "1.0"]:
+            continue
+        add_subject("validation", subject, output_path)
+
+    add_subject("test", case, path_test)
+    return paths_dict
 
 def visualize_batch(batch, save_path, nrow=4):
     """
@@ -149,7 +165,20 @@ def get_training_augmentation(device, use_spacial_augmentation=True, seed=0):
     return train_transforms
 
 
-def train(paths_dict, synthesizer, model, criterion, soft_criterion, criterion_ce, soft_ce, device, save_path, logger, opt, mod_vols=None, total_subsets_mr=None, ultrasounds=None, filtered_arr=None, weights=None, m_2=None, tumor_points_3d=None, surface_tree=None, radius_mm=None):
+def train(
+        paths_dict,
+        sweep_generator,
+        context,
+        ultrasounds,
+        synthesizer,
+        model,
+        criterion,
+        soft_criterion,
+        device,
+        save_path,
+        logger,
+        opt
+    ):    
     logger.info("[INFO] Starting training")
     logger.info(f"Case {opt.case}")
     torch.cuda.synchronize()
@@ -168,20 +197,11 @@ def train(paths_dict, synthesizer, model, criterion, soft_criterion, criterion_c
     dataloaders = {
         "training": infinite_iterable(
             get_training_loader(
-                mod_vols=mod_vols, 
-                total_subsets_mr=total_subsets_mr, 
-                ultrasounds=ultrasounds, 
-                filtered_arr=filtered_arr, 
-                weights=weights, 
-                m_2=m_2, 
-                tumor_points_3d=tumor_points_3d, 
-                surface_tree=surface_tree, 
                 batch_size=opt.batch_size,
                 num_workers=WORKERS,
-                device=device,
-                case=opt.case,
-                radius_mm=radius_mm,
-                use_spacial_augmentation=opt.spacial,
+                sweep_generator=sweep_generator,
+                context=context,
+                ultrasounds=ultrasounds,
                 seed=opt.seed,
             )
         ),
@@ -285,39 +305,35 @@ def train(paths_dict, synthesizer, model, criterion, soft_criterion, criterion_c
                     P_origin = batch['P_origin'].to(device)
                     fov_slice = batch['fov_slice'].to(device)
 
-                    output = dict()
-                    modalities_set = random.choice(total_subsets_mr)
-                    # for mod in modalities_set+['target']:
-                    for mod in modalities_set+('target',):
-                        vol_t = mod_vols[mod]['volume'].to(device)
-                        inv_affine = mod_vols[mod]['inv_affine'].to(device)
-                        interp_mode = "nearest" if mod == "target" else "bilinear" 
+                    modalities_set = random.choice(context.total_subsets_mr)
 
-                        slices = slice_pose_torch_shared_volume_batched(
-                            vol_t,
-                            inv_affine,
-                            Ps,
-                            d_vecs,
-                            i_vecs,
-                            dx_mm=0.5,
-                            dy_mm=0.5,
-                            H_out=192,
-                            W_out=192,
-                            Y=Y_grid, 
-                            X=X_grid,
-                            P_origin=P_origin,
-                            fov_mask=fov_slice,
-                            mode=interp_mode
-                        ) # (N, H, W)
-
-                        output[mod] = slices.permute(0,2,3,1) # (B, H, W, N)
+                    output = sweep_generator.render_sweep_volumes(
+                        context=context,
+                        modalities_set=modalities_set,
+                        ps=Ps,
+                        d_vecs=d_vecs,
+                        i_vecs=i_vecs,
+                        p_us=P_origin,
+                        fov_slice=fov_slice,
+                        device=device,
+                        include_target=True,
+                        y_grid=Y_grid,
+                        x_grid=X_grid,
+                    )
 
                     torch.cuda.synchronize()
                     data_train_generation = time.perf_counter() - data_train_generation
                     data_time_gen_avg.append(data_train_generation)
                     torch.cuda.synchronize()
                     data_train_synthesis = time.perf_counter()
-                    pred = synthesize_us_sweep(synthesizer, modalities_set, output, device, opt.type_normalization)
+                    pred = sweep_generator.synthesize_us_sweep_in_memory(
+                        synthesizer=synthesizer,
+                        modalities=modalities_set,
+                        output=output,
+                        device=device,
+                        type_normalization=opt.type_normalization,
+                        mode="training",
+                    )
                     pred = (pred + 1) / 2  # [-1, 1] -> [0, 1]
                     torch.cuda.synchronize()
                     data_train_synthesis = time.perf_counter() - data_train_synthesis
@@ -495,15 +511,11 @@ def main():
     opt = parsing_data()
     set_determinism(seed=opt.seed)
 
-    # Folders
     fold_dir = os.path.join(opt.model_dir, opt.case, str(opt.learning_rate), str(opt.spacial), opt.comment)
     fold_dir_model = os.path.join(fold_dir, "models")
     os.makedirs(fold_dir_model, exist_ok=True)
 
-    save_path = os.path.join(fold_dir_model, "./CP_{}.pth")
-
-    if opt.path_labels is None:
-        opt.path_labels = opt.path_data
+    save_path = os.path.join(fold_dir_model, "CP_{}.pth")
 
     logger = create_logger(os.path.join(fold_dir))
     logger.info("[INFO] Hyperparameters")
@@ -512,142 +524,65 @@ def main():
     logger.info(f"Initial lr: {opt.learning_rate}")
     logger.info(f"Total number of epochs: {opt.epochs}")
 
-    # GPU check
     if not torch.cuda.is_available():
-        raise logger.error("[INFO] No GPU found")
+        raise RuntimeError("[INFO] No GPU found")
 
-    logger.info("[INFO] GPU available.")
     device = torch.device("cuda:0")
+    logger.info("[INFO] GPU available.")
 
-    split_path = os.path.join(opt.synthesizer_dir, 'split.csv')
-    df_split = pd.read_csv(split_path,header =None)
-    list_file_inference = df_split[df_split[1].isin(['inference'])][0].tolist()
-    assert opt.case+'-' in list_file_inference, f'Synthesizor was trained with {opt.case} - Forbidden'
-    print(f'[INFO] Check passed: synthesizor was not trained with {opt.case}')
-
-    # load case mri
-    images_modalities = get_coregistered_mr_images(opt.path_data, opt.case)
-    print(opt.drop_modalities)
-    print(images_modalities)
-    print([k[0] for k in images_modalities])
-    modalities = [k[0] for k in images_modalities if k[0] != opt.drop_modalities[0]]
-    print(modalities)
-    total_subsets_mr = list(
-        chain.from_iterable(combinations(modalities, r) for r in range(1, len(modalities) + 1))
+    # ------------------------------------------------------------------
+    # Sweep generator + case context
+    # ------------------------------------------------------------------
+    sweep_cfg = SyntheticSweepConfig(
+        path_data_mri=opt.path_data,
+        path_skull_strip=opt.path_strip,
+        out_h=192,
+        out_w=192,
+        dx_mm=0.5,
+        dy_mm=0.5,
     )
-    print(total_subsets_mr)
+    sweep_generator = SyntheticSweepGenerator(sweep_cfg)
 
-    mri_vols = {}
-    for mod in modalities+['target']:
-        path = glob.glob(os.path.join(opt.path_data, opt.case, f'{opt.case}-{mod}**.nii.gz'))[0]
-        # if mod == 'target':
-        #     path = glob.glob(os.path.join(opt.path_data, opt.case, f'{opt.case}-{mod}_n2.nii.gz'))[0]
-        img = nib.load(path)
-        img_affine = torch.from_numpy(img.affine).to(torch.float32)
-        data = img.get_fdata() 
-        inv_affine = torch.linalg.inv(img_affine)
-        vol_np = np.transpose(data, (2, 1, 0))
-        vol_t = torch.from_numpy(vol_np).to(torch.float32).unsqueeze(0).unsqueeze(0)
-        mri_vols[mod] = {
-            'volume': vol_t,
-            'affine': img.affine,
-            'inv_affine': inv_affine
-        }
-    
-    # load case target
-    # path_target = os.path.join(opt.path_data, opt.case, f'{opt.case}-target_n2.nii.gz')
-    path_target = os.path.join(opt.path_data, opt.case, f'{opt.case}-target.nii.gz')
-    img_target = nib.load(path_target)
-    data_target = img_target.get_fdata()
+    context = sweep_generator.prepare_case_context(
+        case=opt.case,
+        annotator="n1",
+        drop_modalities=opt.drop_modalities,
+        target_name="target",
+    )
 
-    ultrasounds = [k for k in os.listdir(opt.path_data) if "Case" in k and opt.case not in k] # len = 102
+    # ------------------------------------------------------------------
+    # Synthesis leakage check + synthesizer model
+    # ------------------------------------------------------------------
+    sweep_generator._check_case_not_seen_during_training(
+        model_dir=opt.synthesizer_dir,
+        case=opt.case
+    )
 
-    # extract surface volume
-    path_img_strip = glob.glob(os.path.join(opt.path_strip, opt.case, f"{opt.case}-**_mask.nii.gz"))[0]
-    data_noncerebrum = (nib.load(path_img_strip).get_fdata() == 0)
-    border = find_boundaries(data_noncerebrum, mode="inner")
-
-    border_pixels = np.stack(np.where(border),-1)
-    new_arr = vox_to_world_many(img_target.affine, border_pixels)
-
-    affine_path = os.path.join('../data/registration/mni', opt.case, f"{opt.case}-mri-to-mni-Syn0GenericAffine.mat")
-    sitk_affine = sitk.ReadTransform(affine_path)
-
-    mni_seg_img = sitk.ReadImage('../data/mni/mni_brain_surface.nii.gz.seg.nrrd')
-    mni_surface_mask = sitk.GetArrayFromImage(mni_seg_img)[..., 0] > 0 # (z,y,x)
-
-    non_viable_surface_mask = sitk.GetArrayFromImage(sitk.ReadImage('../data/mni/refined_non_viable_surface_mask2.nii.gz')) > 0 # (z,y,x)
-    viable_surface_mask = mni_surface_mask & (~non_viable_surface_mask)
-    non_viable_surface_mask_dilated = binary_dilation(non_viable_surface_mask, iterations=5)
-    non_viable_surface_voxels = np.argwhere(non_viable_surface_mask_dilated) # MNI voxel space
-
-    non_viable_surface_mri_world = []
-    for idx in non_viable_surface_voxels:
-        z, y, x = idx
-        physical = mni_seg_img.TransformIndexToPhysicalPoint((int(x), int(y), int(z)))
-        surface_world = sitk_affine.TransformPoint(physical)
-        non_viable_surface_mri_world.append([-1, -1, 1] * np.array(surface_world))
-
-    non_viable_surface_mri_world = np.array(non_viable_surface_mri_world)
-
-    tree = cKDTree(non_viable_surface_mri_world)
-
-    img_mri = sitk.ReadImage(glob.glob(os.path.join(opt.path_data, opt.case, f'{opt.case}-**_ref.nii.gz'))[0])
-    radius_mm = np.sqrt(img_mri.GetSpacing()[0]**2 + img_mri.GetSpacing()[1]**2 + img_mri.GetSpacing()[2]**2)
-
-    idx = tree.query_ball_point(new_arr, r=radius_mm) # for every point in new_arr, idx returns the points in the tree which are within distance r
-    mask = np.array([len(n) == 0 for n in idx])
-    filtered_arr = new_arr[mask]
-
-    # points on brain surface we can query
-    surface_tree = cKDTree(filtered_arr) if len(filtered_arr) > 0 else None
-
-    # extract target information
-    target_mask = np.argwhere(data_target > 0)
-    target_world = vox_to_world_many(img_target.affine, target_mask)
-
-    # points belonging to target in world coordinates
-    TUMOR_POINTS_3D = np.array(target_world)
-
-    m_2 = [k.mean() for k in np.where(data_target > 0)]
-    m_2_noisy = m_2 + np.random.normal(loc=0.0, scale=3.0, size=(3))
-
-    # target CoM in world coordinates
-    m_2_noisy = vox_to_world(img_target.affine, m_2_noisy)
-    m_2 = vox_to_world(img_target.affine, m_2)
-
-    d_2 = np.linalg.norm(filtered_arr - m_2_noisy, axis=1)
-    weights = np.exp(-d_2)
-    weights[weights<0] = 0
-    weights /= weights.sum()
-
-    # Synthesizer
-    print("[INFO] Building hierarchical multi-modal synthesizer")  
-    synthesizer = MHVAE2D(
-        modalities=opt.modalities,   
-        base_num_features=opt.base_features,   
-        num_pool=opt.pools,   
-        original_shape=opt.spatial_shape[:2],
+    syn_cfg = SynthesisConfig(
+        model_dir=opt.synthesizer_dir,
+        case=opt.case,
+        type_normalization=opt.type_normalization,
+        base_features=opt.base_features,
+        pools=opt.pools,
+        spatial_shape=tuple(opt.spatial_shape),
         max_features=opt.max_features,
-        with_residual=opt.no_res,
-        with_se=opt.no_se,
+        no_res=opt.no_res,
+        no_se=opt.no_se,
         nb_finalblocks=opt.nb_finalblocks,
         nfeat_finalblock=opt.nfeat_finalblock,
-        ).eval().to(device)
-    
-    save_path_syn = os.path.join(opt.synthesizer_dir, 'models', './CP_main_{}.pth')
-    assert os.path.exists(save_path_syn.format(opt.synthesizer_epoch)), f"Model weights not found: {save_path_syn.format(opt.synthesizer_epoch)}"
+        epoch_inf=opt.synthesizer_epoch,
+        modalities=opt.modalities,
+    )
 
-    synthesizer.load_state_dict(torch.load(save_path_syn.format(opt.synthesizer_epoch)))
-    print(f"Loading synthesizer from {save_path_syn.format(opt.synthesizer_epoch)}")
+    synthesizer = sweep_generator._build_synthesis_model(device, syn_cfg).eval()
+    sweep_generator._load_synthesis_weights(synthesizer, syn_cfg)
 
-    # UNet Model
-    logger.info("[INFO] Building model")
+    # ------------------------------------------------------------------
+    # Segmentation model
+    # ------------------------------------------------------------------
+    logger.info("[INFO] Building segmentation model")
 
     norm_op_kwargs = {"eps": 1e-5, "affine": True}
-    net_nonlin = nn.LeakyReLU
-    net_nonlin_kwargs = {"negative_slope": 1e-2, "inplace": True}
-
     model = UNet2D(
         input_channels=1,
         base_num_features=32,
@@ -656,60 +591,62 @@ def main():
         conv_op=nn.Conv2d,
         norm_op=nn.InstanceNorm2d,
         norm_op_kwargs=norm_op_kwargs,
-        nonlin=net_nonlin,
-        nonlin_kwargs=net_nonlin_kwargs,
+        nonlin=nn.LeakyReLU,
+        nonlin_kwargs={"negative_slope": 1e-2, "inplace": True},
     ).to(device)
 
-    # checkpoint_path = './models/bratious/0.01/False/n1-100-0.01/models/CP_final.pth'
-    # assert os.path.isfile(checkpoint_path), f"no checkpoint found {checkpoint_path}"
-    # model.load_state_dict(torch.load(checkpoint_path))
-    # logger.info("[INFO] Pre-trained model has been loaded")
-
+    # ------------------------------------------------------------------
     # Losses
+    # ------------------------------------------------------------------
     criterion = DC(NB_CLASSES)
     soft_criterion = DC_SOFT(NB_CLASSES)
 
-    paths_dict = {split: [] for split in PHASES[1:]}
-    nb_valimages = opt.nb_val
-
-    def add_subject(split, subject, path_data):
-        img_path = os.path.join(path_data, subject)
-        lab_flnm = subject.split("_")[0] + '_target.nii.gz'
-        lab_path = os.path.join(path_data, lab_flnm)
-        if split == 'test':
-            img_path = f'{path_data}/imgs/reslice{subject}_crop.nii.gz'
-            lab_path = f'{path_data}/gt/reslice{subject}_crop.nii.gz'
-        if os.path.exists(img_path) and os.path.exists(lab_path):
-            paths_dict[split].append({"img": img_path, "seg": lab_path})
-
-
+    # ------------------------------------------------------------------
+    # Build fixed validation set
+    # ------------------------------------------------------------------
     output_path = os.path.join(opt.output_val, opt.case)
     os.makedirs(output_path, exist_ok=True)
 
-    ultrasounds_subset = iter(np.random.choice(ultrasounds, nb_valimages + 10, replace=False).tolist())
+    available_us = sweep_generator.generate_fixed_validation_dataset(
+        context=context,
+        output_path=output_path,
+        synthesizer=synthesizer,
+        num_samples=opt.nb_val,
+        device=device,
+        type_normalization=opt.type_normalization,
+    )
 
-    count = 0
-    while count < nb_valimages:
-        output, modalities_set, subject = generate_us_sweep(total_subsets_mr, ultrasounds_subset, filtered_arr, weights, TUMOR_POINTS_3D, m_2, surface_tree, mri_vols, device, output_path, radius_mm, mode='validation', case=opt.case)
-        ultrasounds.remove(subject)
-        listToStr = "-".join([str(elem) for elem in modalities_set])
-        flnm = f"{opt.case}-{subject}-{listToStr}"
-        _ = synthesize_us_sweep(synthesizer, modalities_set, output, device, opt.type_normalization, os.path.join(output_path, f'{flnm}'+'_{}.nii.gz'), mode='validation')
-        count += 1
+    # ------------------------------------------------------------------
+    # Build validation/test path dictionaries
+    # ------------------------------------------------------------------
+    paths_dict = build_validation_and_test_paths(
+        output_path=output_path,
+        case=opt.case,
+        path_test=opt.path_test
+    )
 
-    ultrasounds = itertools.cycle(ultrasounds)
-
-    for subject in os.listdir(output_path):
-        if not subject.replace('.nii.gz', '').split('_')[-1] in ['0.3','0.5','0.7','1.0']:
-            continue
-        add_subject("validation", subject, output_path)
-
-    add_subject("test", opt.case, opt.path_test)
-
-    for split in PHASES[1:]:
+    for split in ["validation", "test"]:
         logger.info(f"Nb patients in {split} data: {len(paths_dict[split])}")
 
-    train(paths_dict, synthesizer, model, criterion, soft_criterion, criterion_ce, soft_ce, device, save_path, logger, opt, mod_vols=mri_vols, total_subsets_mr=total_subsets_mr, ultrasounds=ultrasounds, filtered_arr=filtered_arr, weights=weights, m_2=m_2, tumor_points_3d=TUMOR_POINTS_3D, surface_tree=surface_tree, radius_mm=radius_mm)
+    # ------------------------------------------------------------------
+    # Training
+    # ------------------------------------------------------------------
+    ultrasounds_iter = itertools.cycle(available_us)
+
+    train(
+        paths_dict=paths_dict,
+        sweep_generator=sweep_generator,
+        context=context,
+        ultrasounds=ultrasounds_iter,
+        synthesizer=synthesizer,
+        model=model,
+        criterion=criterion,
+        soft_criterion=soft_criterion,
+        device=device,
+        save_path=save_path,
+        logger=logger,
+        opt=opt,
+    )
 
 
 def parsing_data():

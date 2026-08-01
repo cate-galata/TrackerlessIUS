@@ -397,26 +397,6 @@ def get_mr_images(path_folder, case, threed_only=False):
     return mrs_to_register
 
 
-def get_coregistered_mr_images(path_folder, case, threed_only=False):
-    path_premr = os.path.join(path_folder, case)
-    
-    if threed_only:
-        T2s = [os.path.join(path_premr,k) for k in os.listdir(path_premr) if '.nrrd' in k if 't2' in k.lower() and not 'flair' in k.lower() and 'space' in k.lower()]
-        flairs = [os.path.join(path_premr,k) for k in os.listdir(path_premr) if '.nrrd' in k if 'flair' in k.lower() and '3d' in k.lower()]
-        T1ce = [os.path.join(path_premr,k) for k in os.listdir(path_premr) if '.nrrd' in k if 'postcontrast' in k.lower() and '3d' in k.lower()]
-    else:
-        T2s = [path_premr for k in os.listdir(path_premr) if '.nii.gz' in k if 't2' in k.lower()]
-        flairs = [path_premr for k in os.listdir(path_premr) if '.nii.gz' in k if 'flair' in k.lower()]
-        T1ce = [path_premr for k in os.listdir(path_premr) if '.nii.gz' in k if 'cet1' in k.lower()]        
-    
-    T2s = [('t2',k) for k in T2s]
-    flairs = [('flair',k) for k in flairs]
-    T1ce = [('cet1',k) for k in T1ce]
-
-    mrs_to_register = T2s + T1ce + flairs 
-    return mrs_to_register
-
-
 def save_all(items):
     """Debug helper: saves each element of `items` as ./experiments/{i}.pickle."""
     for i, element in enumerate(items):

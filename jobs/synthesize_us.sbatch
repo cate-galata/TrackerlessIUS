@@ -23,92 +23,52 @@ SEED=2
 
 CASE=Case011
 FOLD=0
-python synthesis.py \
-    --model_dir models/synthesis/mmhvae_f$FOLD \
-    --input experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_mri/ \
-    --output experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_us/ \
-    --case $CASE
+python synthesis.py --K $K --annotator $METHOD --case $CASE --fold $FOLD --seed $SEED
 
 
 CASE=Case025
 FOLD=0
-python synthesis.py \
-    --model_dir models/synthesis/mmhvae_f$FOLD \
-    --input experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_mri/ \
-    --output experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_us/ \
-    --case $CASE
+python synthesis.py --K $K --annotator $METHOD --case $CASE --fold $FOLD --seed $SEED
 
 
 CASE=Case045
 FOLD=1
-python synthesis.py \
-    --model_dir models/synthesis/mmhvae_f$FOLD \
-    --input experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_mri/ \
-    --output experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_us/ \
-    --case $CASE
+python synthesis.py --K $K --annotator $METHOD --case $CASE --fold $FOLD --seed $SEED
 
 
 CASE=Case052
 FOLD=1
-python synthesis.py \
-    --model_dir models/synthesis/mmhvae_f$FOLD \
-    --input experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_mri/ \
-    --output experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_us/ \
-    --case $CASE
+python synthesis.py --K $K --annotator $METHOD --case $CASE --fold $FOLD --seed $SEED
 
 
 CASE=Case056
 FOLD=1
-python synthesis.py \
-    --model_dir models/synthesis/mmhvae_f$FOLD \
-    --input experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_mri/ \
-    --output experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_us/ \
-    --case $CASE
+python synthesis.py --K $K --annotator $METHOD --case $CASE --fold $FOLD --seed $SEED
 
 
 CASE=Case070
 FOLD=1
-python synthesis.py \
-    --model_dir models/synthesis/mmhvae_f$FOLD \
-    --input experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_mri/ \
-    --output experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_us/ \
-    --case $CASE
+python synthesis.py --K $K --annotator $METHOD --case $CASE --fold $FOLD --seed $SEED
 
 
 CASE=Case085
 FOLD=2
-python synthesis.py \
-    --model_dir models/synthesis/mmhvae_f$FOLD \
-    --input experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_mri/ \
-    --output experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_us/ \
-    --case $CASE
+python synthesis.py --K $K --annotator $METHOD --case $CASE --fold $FOLD --seed $SEED
 
 
 CASE=Case103
 FOLD=2
-python synthesis.py \
-    --model_dir models/synthesis/mmhvae_f$FOLD \
-    --input experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_mri/ \
-    --output experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_us/ \
-    --case $CASE
+python synthesis.py --K $K --annotator $METHOD --case $CASE --fold $FOLD --seed $SEED
 
 
 CASE=Case112
 FOLD=2
-python synthesis.py \
-    --model_dir models/synthesis/mmhvae_f$FOLD \
-    --input experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_mri/ \
-    --output experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_us/ \
-    --case $CASE
+python synthesis.py --K $K --annotator $METHOD --case $CASE --fold $FOLD --seed $SEED
 
 
 CASE=Case114
 FOLD=2
-python synthesis.py \
-    --model_dir models/synthesis/mmhvae_f$FOLD \
-    --input experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_mri/ \
-    --output experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_us/ \
-    --case $CASE
+python synthesis.py --K $K --annotator $METHOD --case $CASE --fold $FOLD --seed $SEED
 
 
 
@@ -119,62 +79,34 @@ SEED=2
 
 CASE=Case027
 FOLD=0
-python synthesis.py \
-    --model_dir models/synthesis/mmhvae_f$FOLD \
-    --input experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_mri/ \
-    --output experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_us/ \
-    --case $CASE
+python synthesis.py --K $K --annotator $METHOD --case $CASE --fold $FOLD --seed $SEED
 
 
 CASE=Case045
 FOLD=1
-python synthesis.py \
-    --model_dir models/synthesis/mmhvae_f$FOLD \
-    --input experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_mri/ \
-    --output experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_us/ \
-    --case $CASE
+python synthesis.py --K $K --annotator $METHOD --case $CASE --fold $FOLD --seed $SEED
 
 
 CASE=Case074
 FOLD=2
-python synthesis.py \
-    --model_dir models/synthesis/mmhvae_f$FOLD \
-    --input experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_mri/ \
-    --output experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_us/ \
-    --case $CASE
+python synthesis.py --K $K --annotator $METHOD --case $CASE --fold $FOLD --seed $SEED
 
 
 CASE=Case085
 FOLD=2
-python synthesis.py \
-    --model_dir models/synthesis/mmhvae_f$FOLD \
-    --input experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_mri/ \
-    --output experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_us/ \
-    --case $CASE
+python synthesis.py --K $K --annotator $METHOD --case $CASE --fold $FOLD --seed $SEED
 
 
 CASE=Case099
 FOLD=2
-python synthesis.py \
-    --model_dir models/synthesis/mmhvae_f$FOLD \
-    --input experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_mri/ \
-    --output experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_us/ \
-    --case $CASE
+python synthesis.py --K $K --annotator $METHOD --case $CASE --fold $FOLD --seed $SEED
 
 
 CASE=Case103
 FOLD=2
-python synthesis.py \
-    --model_dir models/synthesis/mmhvae_f$FOLD \
-    --input experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_mri/ \
-    --output experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_us/ \
-    --case $CASE
+python synthesis.py --K $K --annotator $METHOD --case $CASE --fold $FOLD --seed $SEED
 
 
 CASE=Case112
 FOLD=2
-python synthesis.py \
-    --model_dir models/synthesis/mmhvae_f$FOLD \
-    --input experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_mri/ \
-    --output experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_us/ \
-    --case $CASE
+python synthesis.py --K $K --annotator $METHOD --case $CASE --fold $FOLD --seed $SEED

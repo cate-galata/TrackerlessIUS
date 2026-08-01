@@ -8,6 +8,21 @@ import os
 from scipy.spatial import cKDTree
 
 
+def get_coregistered_mr_images(path_folder, case):
+    path_premr = os.path.join(path_folder, case)
+    
+    T2s = [path_premr for k in os.listdir(path_premr) if '.nii.gz' in k if 't2' in k.lower()]
+    flairs = [path_premr for k in os.listdir(path_premr) if '.nii.gz' in k if 'flair' in k.lower()]
+    T1ce = [path_premr for k in os.listdir(path_premr) if '.nii.gz' in k if 'cet1' in k.lower()]        
+    
+    T2s = [('t2',k) for k in T2s]
+    flairs = [('flair',k) for k in flairs]
+    T1ce = [('cet1',k) for k in T1ce]
+
+    mrs = T2s + T1ce + flairs 
+    return mrs
+
+
 def sample_points_along_straight_line(P0, sweep_dir, s_min, s_max, ds=0.5):
     
     sweep_dir = np.asarray(sweep_dir)

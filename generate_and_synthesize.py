@@ -19,7 +19,7 @@ def main():
     config = SyntheticSweepConfig()
     generator = SyntheticSweepGenerator(config)
 
-    generator.synthesize_case(
+    generator.generate_case_and_synthesize(
         case=args.case,
         annotator=args.annotator,
         num_sweeps_per_subset=args.K,

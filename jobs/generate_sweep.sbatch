@@ -21,52 +21,42 @@ K=1
 SEED=2
 
 CASE=Case011
-python generate_data.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 python generate_data_new.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 
 
 CASE=Case025
-python generate_data.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 python generate_data_new.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 
 
 CASE=Case045
-python generate_data.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 python generate_data_new.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 
 
 CASE=Case052
-python generate_data.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 python generate_data_new.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 
 
 CASE=Case056
-python generate_data.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 python generate_data_new.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 
 
 CASE=Case070
-python generate_data.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 python generate_data_new.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 
 
 CASE=Case085
-python generate_data.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 python generate_data_new.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 
 
 CASE=Case103
-python generate_data.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 python generate_data_new.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 
 
 CASE=Case112
-python generate_data.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 python generate_data_new.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 
 
 CASE=Case114
-python generate_data.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 python generate_data_new.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 
 
@@ -76,35 +66,28 @@ SEED=2
 
 
 CASE=Case027
-python generate_data.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 python generate_data_new.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 
 
 CASE=Case045
-python generate_data.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 python generate_data_new.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 
 
 CASE=Case074
-python generate_data.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 python generate_data_new.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 
 
 CASE=Case085
-python generate_data.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 python generate_data_new.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 
 
 CASE=Case099
-python generate_data.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 python generate_data_new.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 
 
 CASE=Case103
-python generate_data.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 python generate_data_new.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 
 
 CASE=Case112
-python generate_data.py --K $K --annotator $METHOD --case $CASE --seed $SEED
 python generate_data_new.py --K $K --annotator $METHOD --case $CASE --seed $SEED

@@ -21,21 +21,10 @@ K=10
 EPOCH=100
 LR=0.01
 CASE=Case103
+FOLD=2
 SEED=2
 
-python generate_data_new.py \
-    --K $K \
-    --annotator $METHOD \
-    --case $CASE \
-    --seed $SEED
-
-FOLD=2
-python synthesis.py \
-    --model_dir models/synthesis/mmhvae_f$FOLD \
-    --input experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_mri/ \
-    --output experiments/synthetic/$METHOD-$K-$SEED/$CASE/data_us/ \
-    --case $CASE \
-    --seed $SEED
+python generate_and_synthesize.py --K $K --annotator $METHOD --case $CASE --fold $FOLD --seed $SEED
 
 python train.py \
     --model_dir ./models/ \
